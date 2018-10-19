@@ -20,6 +20,11 @@ namespace JKang.IpcServiceFramework
             _logger = _serviceProvider.GetService<ILogger<IpcServiceHost>>();
         }
 
+        ~IpcServiceHost()
+        {
+            Close();
+        }
+
         public void Run()
         {
             Parallel.ForEach(_endpoints, endpoint =>
@@ -28,6 +33,12 @@ namespace JKang.IpcServiceFramework
                 endpoint.Listen();
                 _logger?.LogDebug($"Endpoint '{endpoint.Name}' stopped.");
             });
+        }
+
+        public void Close()
+        {
+            foreach (IpcServiceEndpoint endpoint in _endpoints)
+                endpoint.Close();
         }
     }
 }

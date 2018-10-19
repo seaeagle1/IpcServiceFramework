@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO.Pipes;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace JKang.IpcServiceFramework.NamedPipe
 {
@@ -27,35 +29,47 @@ namespace JKang.IpcServiceFramework.NamedPipe
         {
             NamedPipeOptions options = ServiceProvider.GetRequiredService<NamedPipeOptions>();
 
-            var threads = new Thread[options.ThreadCount];
-            for (int i = 0; i < threads.Length; i++)
+            List<Task> tasks = new List<Task>();
+
+            // Add additional waiters if requested
+            for (int i = 1; i < options.ThreadCount; i++)
             {
-                threads[i] = new Thread(StartServerThread);
-                threads[i].Start();
+                tasks.Add(StartServerThread(null));
             }
 
-            while (true)
+            // Loop until cancellation, restart new waiter as soon as one finished
+            while (!cancellationToken.IsCancellationRequested)
             {
-                Thread.Sleep(100);
-                for (int i = 0; i < threads.Length; i++)
+                tasks.Add(StartServerThread(null));
+                Task<Task> t = Task.WhenAny(tasks);
+
+                try
                 {
-                    if (threads[i].Join(250))
-                    {
-                        // thread is finished, starting a new thread
-                        threads[i] = new Thread(StartServerThread);
-                        threads[i].Start();
-                    }
+                    t.Wait(cancellationToken.Token);
+                    tasks.Remove(t.Result);
                 }
+                catch (OperationCanceledException)
+                { }
             }
         }
 
-        private void StartServerThread(object obj)
+        private async Task StartServerThread(object obj)
         {
-            using (var server = new NamedPipeServerStream(PipeName, PipeDirection.InOut, _options.ThreadCount))
+            using (var server = new NamedPipeServerStream(
+                PipeName, 
+                PipeDirection.InOut, 
+                _options.ThreadCount, 
+                PipeTransmissionMode.Byte, 
+                PipeOptions.Asynchronous))
             {
-                server.WaitForConnection();
+                try
+                {
+                    await server.WaitForConnectionAsync(cancellationToken.Token);
 
-                Process(server, _logger);
+                    Process(server, _logger);
+                }
+                catch (OperationCanceledException)
+                { }
             }
         }
     }

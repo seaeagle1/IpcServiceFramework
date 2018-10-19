@@ -18,10 +18,16 @@ namespace JKang.IpcServiceFramework
             ServiceProvider = serviceProvider;
         }
 
+        ~IpcServiceEndpoint()
+        {
+            Close();
+        }
+
         public string Name { get; }
         public IServiceProvider ServiceProvider { get; }
 
         public abstract void Listen();
+        public abstract void Close();
     }
 
     public abstract class IpcServiceEndpoint<TContract>: IpcServiceEndpoint
@@ -29,6 +35,7 @@ namespace JKang.IpcServiceFramework
     {
         private readonly IValueConverter _converter;
         private readonly IIpcMessageSerializer _serializer;
+        protected readonly CancellationTokenSource cancellationToken = new CancellationTokenSource();
 
         protected IpcServiceEndpoint(string name, IServiceProvider serviceProvider)
             : base(name, serviceProvider)
@@ -117,6 +124,11 @@ namespace JKang.IpcServiceFramework
             {
                 return IpcResponse.Fail($"Internal server error: {ex.Message}");
             }
+        }
+
+        public override void Close()
+        {
+            cancellationToken.Cancel();
         }
     }
 }
