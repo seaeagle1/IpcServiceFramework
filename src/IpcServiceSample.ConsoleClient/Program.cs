@@ -26,6 +26,9 @@ namespace IpcServiceSample.ConsoleClient
                     .UseTcp(IPAddress.Loopback, 45684)
                     .Build();
 
+                if (!computingClient.TestConnection())
+                    Console.WriteLine("Connection to ComputingService failed!");
+
                 // test 1: call IPC service method with primitive types
                 float result1 = await computingClient.InvokeAsync(x => x.AddFloat(1.23f, 4.56f));
                 Console.WriteLine($"[TEST 1] sum of 2 floating number is: {result1}");

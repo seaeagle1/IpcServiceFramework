@@ -23,6 +23,19 @@ namespace JKang.IpcServiceFramework
             _converter = converter;
         }
 
+        public bool TestConnection()
+        {
+            try
+            {
+                Stream client = ConnectToServer();
+                client.Close();
+                return true;
+            } catch (Exception)
+            {
+                return false;
+            }
+        }
+
         public async Task InvokeAsync(Expression<Action<TInterface>> exp)
         {
             IpcRequest request = GetRequest(exp, new MyInterceptor());
@@ -84,6 +97,7 @@ namespace JKang.IpcServiceFramework
         }
 
         protected abstract Task<Stream> ConnectToServerAsync();
+        protected abstract Stream ConnectToServer();
 
         private async Task<IpcResponse> GetResponseAsync(IpcRequest request)
         {

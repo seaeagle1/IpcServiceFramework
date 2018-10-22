@@ -20,6 +20,11 @@ namespace JKang.IpcServiceFramework.Tcp
             _serverPort = serverPort;
         }
 
+        protected override Stream ConnectToServer()
+        {
+            throw new NotImplementedException();
+        }
+
         protected override async Task<Stream> ConnectToServerAsync()
         {
             var client = new TcpClient();

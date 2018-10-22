@@ -16,10 +16,17 @@ namespace JKang.IpcServiceFramework.NamedPipe
             _pipeName = pipeName;
         }
 
+        protected override Stream ConnectToServer()
+        {
+            var stream = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.None);
+            stream.Connect(250);
+            return stream;
+        }
+
         protected override async Task<Stream> ConnectToServerAsync()
         {
             var stream = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.None);
-            await stream.ConnectAsync();
+            await stream.ConnectAsync(1000);
             return stream;
         }
     }
